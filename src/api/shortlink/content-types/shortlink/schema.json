@@ -1,0 +1,26 @@
+{
+  "kind": "collectionType",
+  "collectionName": "shortlinks",
+  "info": {
+    "singularName": "shortlink",
+    "pluralName": "shortlinks",
+    "displayName": "shortlink",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "uid": {
+      "type": "uid"
+    },
+    "redirectTo": {
+      "type": "string"
+    },
+    "deleteAt": {
+      "type": "datetime",
+      "required": false
+    }
+  }
+}
