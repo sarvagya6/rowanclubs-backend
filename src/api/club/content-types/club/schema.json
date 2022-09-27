@@ -18,8 +18,9 @@
     "acronym": {
       "type": "string"
     },
-    "clubID": {
-      "type": "string"
+    "websiteKey": {
+      "type": "string",
+      "unique": true
     },
     "uid": {
       "type": "uid"
