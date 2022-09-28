@@ -21,6 +21,24 @@ module.exports = {
          */
         policies: ['is-admin']
       }
-    }
+    },
+
+    //add manager to club
+    {
+      method: 'GET',
+      path: '/club/register',
+      handler: 'club.registerManager',
+      config: {}
+    },
+
+    //manager email verification for first time registration
+    {
+      method: 'POST',
+      path: '/clubs/register-manager',
+      handler: 'club.managerEmail',
+      config: {
+        auth: false
+      }
+    },
   ]
 }
