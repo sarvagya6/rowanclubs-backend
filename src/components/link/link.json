@@ -2,7 +2,8 @@
   "collectionName": "components_link_links",
   "info": {
     "displayName": "Link",
-    "icon": "equals"
+    "icon": "equals",
+    "description": ""
   },
   "options": {},
   "attributes": {
@@ -10,8 +11,7 @@
       "type": "string"
     },
     "url": {
-      "type": "string",
-      "regex": "(https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9]+\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]+\\.[^\\s]{2,})"
+      "type": "string"
     }
   }
 }
