@@ -10,7 +10,6 @@ const { createCoreController } = require('@strapi/strapi').factories;
 module.exports = createCoreController('api::shortlink.shortlink', ({strapi}) => ({
   async findOne(ctx) {
       const { uid } = ctx.params;
-      console.log('uid', uid);
 
       const entity = await strapi.db.query('api::shortlink.shortlink').findOne({
         where: { uid }
