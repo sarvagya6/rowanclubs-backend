@@ -53,4 +53,20 @@ module.exports = {
       ctx.body = err;
     }
   },
+
+  exampleAddLinks: async (ctx) => {
+    try {
+
+      //stuff
+
+      //return 200 success
+      return ctx.send({ message: "success" });
+
+    } catch (err) {
+      ctx.body = err;
+
+      //return 400 error
+      return ctx.send({ message: "error" });
+    }
+  },
 };
