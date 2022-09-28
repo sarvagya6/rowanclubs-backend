@@ -56,6 +56,32 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
     }
   },
 
+  //superDelete: delete all clubs from the ProfLink API
+  //
+  // async superDelete(ctx) {
+  //   try {
+  //     const clubs = await strapi.db.query("api::club.club").find();
+  //     clubs.forEach(async (club) => {
+  //       try {
+  //         await super.delete(ctx, { id: club.id });
+  //       } catch (error) {
+  //         console.error(error);
+  //         //return 400 error
+  //         return ctx.badRequest(null, error);
+  //       }
+  //     });
+
+  //     //return 200 success
+  //     return ctx.send({ message: "success" });
+
+  //   } catch (error) {
+  //     console.error(error);
+  //     //return 400 error
+  //     return ctx.badRequest(null, error);
+  //   }
+  // },
+
+
   //registrClub: register a club for the first time
   async registerManager(ctx) {
     try {
@@ -387,7 +413,11 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
       //fetch club details from body
       const data = ctx.request.body.data;
 
-      //name, acronym, websiteKey, enable, bgColor, accentColor
+      //name NOTNULL, acronym, websiteKey NOTNULL, enable, bgColor, accentColor
+      //check if name and websiteKey are set
+      if (!data.name || !data.websiteKey) {
+        return ctx.badRequest(null, "Name and website key are required");
+      }
 
       //get club and email from token jwt
       const jwt = strapi.plugins["users-permissions"].services.jwt.verify(token);
