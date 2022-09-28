@@ -35,12 +35,14 @@
       "type": "string"
     },
     "password": {
-      "type": "password"
+      "type": "password",
+      "private": true
     },
     "manager": {
-      "type": "relation",
-      "relation": "oneToOne",
-      "target": "plugin::users-permissions.user"
+      "type": "email"
+    },
+    "links": {
+      "type": "json"
     }
   }
 }
