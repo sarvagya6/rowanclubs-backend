@@ -53,10 +53,8 @@
       "target": "plugin::users-permissions.role",
       "inversedBy": "users"
     },
-    "link": {
-      "type": "component",
-      "repeatable": true,
-      "component": "link.link"
+    "links": {
+      "type": "json"
     }
   }
 }
