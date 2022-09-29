@@ -14,6 +14,7 @@ const { nanoid } = require('nanoid');
 module.exports = createCoreController("api::club.club", ({ strapi }) => ({
 
   //superCreate: create all clubs from the ProfLink API
+  //route: /club/supercreate
   async superCreate(ctx) {
     try {
       const response = await axios.get(
@@ -57,6 +58,7 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
   },
 
   //superDelete: delete all clubs from the ProfLink API
+  //route: /club/superdelete
   //
   // async superDelete(ctx) {
   //   try {
@@ -82,8 +84,10 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
   // },
 
 
-  //registrClub: register a club for the first time
-  async registerManager(ctx) {
+  //route: /club/register
+  //method: GET
+  //returns: jwt token
+  async setManager(ctx) {
     try {
 
       //get token from url
@@ -96,9 +100,16 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
         return ctx.badRequest(null, "Invalid token");
       }
 
+      //check if manager already set
+      // const club = await strapi.db.query("api::club.club").findOne({ uid: data.club });
+      // if (club.manager) {
+      //   return ctx.badRequest(null, "Manager already set");
+      // }
+
+      //set manager
       const entity = await strapi.db
         .query("api::club.club")
-        .update({ where: { uid:data.club },
+        .update({ where: { uid: data.club },
         data: {
           manager: data.email,
         }
@@ -106,8 +117,14 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
 
       console.log("Added manager to club", entity);
 
-      //return 200 success
-      return ctx.send({ message: "success" });
+      //create newToken
+      const newToken = strapi.plugins["users-permissions"].services.jwt.issue({
+        email: data.email,
+        club: data.club,
+      });
+
+      //return 200 success with new token
+      return ctx.send({ message: "success" , jwt: newToken});
 
     } catch (error) {
       console.error(error);
@@ -117,8 +134,12 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
     }
   },
 
-  //managerEmail: send an email to the club manager with a link to register the club with a token
-  async managerEmail(ctx) {
+  //managerSignUp: send an email to the club manager with a link to register the club with a token
+  //route: /club/register
+  //method: POST
+  //body: {email: string, clubUID: string}
+  //returns: email with token link
+  async managerSignUp(ctx) {
     try {
 
       const data = ctx.request.body.data; //send the club UID and manager email
@@ -140,7 +161,7 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
       });
 
       //link
-      const link = `${BASE_URL}/api/club/register?token=${token}`;
+      const link = `${BASE_URL}/club/register?token=${token}`; //frontend link
 
       //send email to manager with link to register the club
       await strapi.plugins.email.services.email.send({
@@ -163,54 +184,10 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
     }
   },
 
-  //create club password for the first time
-  async setPassword(ctx) {
-    try {
-      //get token from header
-      const token = ctx.request.header.authorization.split(" ")[1];
-
-      //get club and email from token jwt
-      const data = strapi.plugins["users-permissions"].services.jwt.verify(token);
-      if (!data) {
-        return ctx.badRequest(null, "Invalid token");
-      }
-
-      //get club by uid
-      const club = await strapi.db
-        .query("api::club.club")
-        .findOne({ uid: data.club });
-
-      //check if password is already set
-      if (club.password) {
-        return ctx.badRequest(null, "Password already set");
-      }
-
-      //hash password
-      const hash = await bcrypt.hash(data.password, 10);
-
-      //update club password
-      const entity = await strapi.db
-        .query("api::club.club")
-        .update({ where: { uid: data.club },
-        data: {
-          password: hash,
-        }
-      });
-
-      console.log("Added password to club", entity);
-
-      //return 200 success
-      return ctx.send({ message: "success" });
-
-    } catch (error) {
-      console.error(error);
-
-      //return 400 error
-      return ctx.badRequest(null, error);
-    }
-  },
-
   //club login
+  //route: /club/login
+  //method: POST
+  //body: {email: string, password: string, clubUID: string}
   async login(ctx) {
     try {
       const data = ctx.request.body.data; //send the manager email, club UID and password
@@ -254,9 +231,10 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
   },
 
   //club password change
+  //route: /club/password-change
   async changePassword(ctx) {
     try {
-      const data = ctx.request.body.data; //send the new password
+      const password = ctx.request.body.data.password; //send the new password
 
       //get token from header
       const token = ctx.request.header.authorization.split(" ")[1];
@@ -278,7 +256,7 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
       }
 
       //hash password
-      const hash = await bcrypt.hash(data.password, 10);
+      const hash = await bcrypt.hash(password, 10);
 
       //update club password
       const entity = await strapi.db
@@ -302,39 +280,44 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
     }
   },
 
-  //club password reset request
-  async resetPasswordRequest(ctx) {
+  //club password forgot request
+  //route: /club/password-forgot
+  async forgotPasswordRequest(ctx) {
     try {
-      const data = ctx.request.body.data; //send the manager email and club UID
+      const clubUID = ctx.request.body.data.clubUID; //send the manager email and club UID
+      const email = ctx.request.body.data.email;
+
+      if (!clubUID || !email) {
+        return ctx.badRequest(null, "Invalid");
+      }
 
       //get club by uid
       const club = await strapi.db
         .query("api::club.club")
-        .findOne({ uid: data.clubUID });
+        .findOne({ uid: clubUID });
 
       //verify manager email
-      if (club.manager !== data.email) {
-        return ctx.badRequest(null, "Invalid credentials");
+      if (club.manager === email) {
+
+        //generate a token
+        const token = strapi.plugins['users-permissions'].services.jwt.issue({
+          club: clubUID,
+          email: email,
+        });
+
+        //link
+        const link = `${BASE_URL}/club/reset-password?token=${token}`;
+
+        //send email to manager with link to reset password
+        await strapi.plugins.email.services.email.send({
+          to: email,
+          subject: "Club Password Reset",
+          text: "Please click the link below to reset your password",
+          html: `<a href="${link}">Reset Password</a>`,
+        });
+
+        console.log(link);
       }
-
-      //generate a token
-      const token = strapi.plugins['users-permissions'].services.jwt.issue({
-        club: data.clubUID,
-        email: data.email,
-      });
-
-      //link
-      const link = `${BASE_URL}/api/club/reset-password?token=${token}`;
-
-      //send email to manager with link to reset password
-      await strapi.plugins.email.services.email.send({
-        to: email,
-        subject: "Club Password Reset",
-        text: "Please click the link below to reset your password",
-        html: `<a href="${link}">Reset Password</a>`,
-      });
-
-      console.log(link);
 
       //return 200 success
       return ctx.send({ message: "success" });
@@ -347,14 +330,10 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
     }
   },
 
-  //club password reset
-  //this is the same as change password
-
   //transfer club manager using email
+  //route: /club/transfer-manager
   async transferManager(ctx) {
     try {
-      const data = ctx.request.body.data; //send the new manager email and club UID
-
       //get token from header
       const token = ctx.request.header.authorization.split(" ")[1];
 
@@ -363,6 +342,8 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
       if (!jwt) {
         return ctx.badRequest(null, "Invalid token");
       }
+
+      const email = ctx.request.body.data.email; //send the new manager email
 
       //get club by uid
       const club = await strapi.db
@@ -377,7 +358,7 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
       //send email to new manager with link to accept transfer with new token
       const newToken = strapi.plugins['users-permissions'].services.jwt.issue({
         club: jwt.club,
-        email: data.email,
+        email: email,
       });
 
       //link
@@ -385,7 +366,7 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
 
       //send email to manager with link to reset password
       await strapi.plugins.email.services.email.send({
-        to: data.email,
+        to: email,
         subject: "Club Manager Transfer",
         text: "Please click the link below to accept the transfer",
         html: `<a href="${link}">Accept Transfer</a>`,
@@ -405,7 +386,12 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
   },
 
   //update club details
-  async clubProfile(ctx) {
+  //route: /club/update
+  //token required
+  //Method: PUT
+  //Body: { name, acronym, websiteKey, enable, bgColor, accentColor }
+  //Returns: 200 success
+  async updateClubProfile(ctx) {
     try {
       //get token from header
       const token = ctx.request.header.authorization.split(" ")[1];
@@ -465,25 +451,20 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
   //Links
   //Schema: links:[ { id, enable, title, redirectTo }, ... ]
   //get links
+  //route: /club/links?websiteKey=xxx
   async getLinks(ctx) {
     try {
-      //get token from header
-      const token = ctx.request.header.authorization.split(" ")[1];
+      //get club website key from query
+      const websiteKey = ctx.request.query.websiteKey;
 
-      //get club and email from token jwt
-      const jwt = strapi.plugins["users-permissions"].services.jwt.verify(token);
-      if (!jwt) {
-        return ctx.badRequest(null, "Invalid token");
-      }
-
-      //get club by uid
+      //get club by website key
       const club = await strapi.db
         .query("api::club.club")
-        .findOne({ uid: jwt.club });
+        .findOne({ websiteKey: websiteKey });
 
-      //verify manager email
-      if (club.manager !== jwt.email) {
-        return ctx.badRequest(null, "Invalid credentials");
+      //if club not found
+      if (!club) {
+        return ctx.badRequest(null, "Invalid website key");
       }
 
       //return links if not null and 200 success
@@ -502,6 +483,10 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
   },
 
   //add link
+  //route: /club/links
+  //token required
+  //Method: POST
+  //Body: { title, redirectTo, enable }
   async addLink(ctx) {
     try {
       //get token from header
@@ -576,6 +561,10 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
   },
 
   //update link search by id
+  //route: /club/links
+  //token required
+  //Method: PUT
+  //Body: { id, title, redirectTo, enable }
   async updateLink(ctx) {
     try {
       //get token from header
@@ -655,10 +644,20 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
   },
 
   //delete link search by id
+  //route: /club/links
+  //token required
+  //Method: DELETE
+  //Body: { id }
   async deleteLink(ctx) {
     try {
       //get token from header
       const token = ctx.request.header.authorization.split(" ")[1];
+
+      //get club and email from token jwt
+      const jwt = strapi.plugins["users-permissions"].services.jwt.verify(token);
+      if (!jwt) {
+        return ctx.badRequest(null, "Invalid token");
+      }
 
       //fetch link details from body
       const data = ctx.request.body.data;
@@ -666,12 +665,6 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
       //verify schema
       if (!data.id) {
         return ctx.badRequest(null, "Invalid schema");
-      }
-
-      //get club and email from token jwt
-      const jwt = strapi.plugins["users-permissions"].services.jwt.verify(token);
-      if (!jwt) {
-        return ctx.badRequest(null, "Invalid token");
       }
 
       //get club by uid
@@ -720,10 +713,20 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
   },
 
   //reorder links
+  //route: /club/links/reorder
+  //token required
+  //Method: PUT
+  //Body: { links }
   async reorderLinks(ctx) {
     try {
       //get token from header
       const token = ctx.request.header.authorization.split(" ")[1];
+
+      //get club and email from token jwt
+      const jwt = strapi.plugins["users-permissions"].services.jwt.verify(token);
+      if (!jwt) {
+        return ctx.badRequest(null, "Invalid token");
+      }
 
       //fetch link details from body
       const data = ctx.request.body.data;
@@ -732,12 +735,6 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
       if (!data.links || data.links.length === 0 ||
         data.links.some((link) => !link.id || !link.enable || !link.title || !link.redirectTo || !validator.isURL(link.redirectTo))) {
         return ctx.badRequest(null, "Invalid schema");
-      }
-
-      //get club and email from token jwt
-      const jwt = strapi.plugins["users-permissions"].services.jwt.verify(token);
-      if (!jwt) {
-        return ctx.badRequest(null, "Invalid token");
       }
 
       //get club by uid
