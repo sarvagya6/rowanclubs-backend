@@ -231,7 +231,10 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
   },
 
   //club password change
-  //route: /club/password-change
+  //route: /club/change-password
+  //method: POST
+  //body: {password: string}
+  //returns: 200 success
   async changePassword(ctx) {
     try {
       const password = ctx.request.body.data.password; //send the new password
@@ -281,7 +284,10 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
   },
 
   //club password forgot request
-  //route: /club/password-forgot
+  //route: /club/forgot-password
+  //method: POST
+  //body: {email: string, clubUID: string}
+  //returns: 200 success + email with token link
   async forgotPasswordRequest(ctx) {
     try {
       const clubUID = ctx.request.body.data.clubUID; //send the manager email and club UID
@@ -332,6 +338,8 @@ module.exports = createCoreController("api::club.club", ({ strapi }) => ({
 
   //transfer club manager using email
   //route: /club/transfer-manager
+  //method: POST
+  //body: {email: string}
   async transferManager(ctx) {
     try {
       //get token from header
