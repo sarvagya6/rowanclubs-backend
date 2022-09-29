@@ -1,8 +1,8 @@
 module.exports = {
-  beforeUpdate(data) {
+  // beforeUpdate(data) {
 
-    //debug
-    console.log('beforeCreate', data.params.data);
+  //   //debug
+  //   console.log('beforeCreate', data.params.data);
 
-  }
+  // }
 };
